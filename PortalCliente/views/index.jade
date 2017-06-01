@@ -1,0 +1,8 @@
+extends layout
+
+block content
+
+    h1 Hello
+    - console.log("a");console.log(user);
+    each usr in user
+        h1 #{usr.Idcliente}
