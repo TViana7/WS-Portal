@@ -38,37 +38,6 @@ router.get('/:tablename', function(req, res, next) {
 
 });
 
-/*
-  Retorna informção de um dado utilizador
-*/
-router.get('/:tablename/:email', function(req, res, next) {
-  var table = req.params.tablename;
-  var email = req.params.email;
-  var request = new sql.Request(connection);
-    request.query("SELECT * FROM " + table +  " where Email = '" +email + "'" , function(err, recordset){
-      if(err){
-        return next(err);
-      }
-      res.send(recordset);
-    });
-
-});
-
-/*
-  Retorna toda a informação da tabela utilizador
-*/
-router.get('/:tablename/:id', function(req, res, next) {
-  var table = req.params.tablename;
-  var id = req.params.id;
-  var request = new sql.Request(connection);
-    request.query('SELECT * FROM '+ table + ' where IdNav='+ id , function(err, recordset){
-      if(err){
-        return next(err);
-      }
-      res.send(recordset);
-    });
-
-});
 
 module.exports = router;
 
@@ -132,6 +101,110 @@ router.get('/mapeamento/getURL/teste', function(req, res, next){
                     array=[];
 
           }, this);
+          console.log(arrayGlobal);
+          res.send(arrayGlobal);
+
+        } 
+
+    });
+});
+
+/*
+
+Inserir perfis
+
+*/
+
+router.post('/perfis/inserirPerfil/novoPerfil', function(req, res, next){
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  var request = new sql.Request(connection);
+  request.query("select NomePerfil from perfil where NomePerfil='"+req.body.nome+"'", function(err, resposta){
+    if(err){
+        return next(err);
+    }
+    if(Object.keys(resposta).length==0){
+        request.query("insert into perfil (NomePerfil, Descricao, Cliente) values ('"+req.body.nome+"', '"+req.body.descricao+"','"+req.body.cliente+"')", function(err){
+          if(err){
+            return next(err);
+          }
+          else{  
+              request.query("SELECT IdPerfil FROM perfil where NomePerfil='"+req.body.nome+"'", function(err, idPerfil){
+                if(err){
+                  return next(err);
+                }else{
+                  var idPerfil=idPerfil[0].IdPerfil;
+                  for (var index = 0; index < req.body.url.length; index++) {
+                    request.query("insert into Mapa (Perfil, Url) values ('"+idPerfil+"','"+req.body.url[index]+"')");  
+                  }
+                  return res.json({
+                      sucesso: true,
+                      message:"Perfil adicionado com sucesso!"
+                  })
+                } 
+              });
+          }
+        });
+    }else{
+      return res.json({
+                sucesso: false,
+                message:"Este perfil já existe!"
+      })
+    }
+    
+  });
+
+});
+
+/*
+
+Listagem de perfis
+
+*/
+
+router.get('/perfis/todosperfis/getperfis', function(req, res, next){
+  var array=[];
+  var arrayGlobal=[];
+  var arrayCopy=[];
+
+  var request = new sql.Request(connection);
+  request.query("select IdPerfil, NomePerfil, Descricao, Nome from perfil, mapa, url where perfil.IdPerfil = mapa.Perfil and mapa.Url = url.IdUrl", function(err, recordset){
+      if(err){
+        return next(err);
+      }else{
+
+        console.log(recordset);
+        arrayCopy=recordset;
+    
+          arrayCopy.forEach(function(element,index){
+                var aux=element.Descricao;
+                var aux1=element.IdPerfil;
+                var aux2=element.NomePerfil;
+                console.log("perfil"+element.NomePerfil);
+                arrayCopy.forEach(function(element, index) {
+                  if(String(element.IdPerfil)===String(aux1)){
+                    var item = {"Nome":element.Nome};
+                    array.push(item);
+                    //console.log(array);                   
+                  }
+                
+                }, this);
+                //console.log(array);
+                arrayCopy.forEach(function(element, index1) {
+                  console.log(arrayCopy);
+                  if(String(element.IdPerfil)===String(aux1)){
+                      arrayCopy.splice(index1,1);
+                      console.log(arrayCopy);
+                  }
+                
+                }, this);
+
+                var item1 = {"IdPerfil":aux1,"NomePerfil":aux2,"Descricao":aux,"MapaUrl":array};
+                    arrayGlobal.push(item1);
+                    array=[];
+
+          }, this);
+
+          //console.log(arrayGlobal);
 
           res.send(arrayGlobal);
 
@@ -139,5 +212,41 @@ router.get('/mapeamento/getURL/teste', function(req, res, next){
 
     });
 });
+
+
+/*
+  Delete Perfis
+*/
+
+router.post('/perfis/deletePerfis', function(req, res, next){
+
+  var idper = req.body.idperfil;   
+  console.log("entrada:"+idper);
+  var request = new sql.Request(connection);
+  request.query("delete from mapa where perfil='"+ idper +"'", function(err, recordset){
+      if(err){
+        return next(err);
+      }else{
+        request.query("delete from perfil where IdPerfil='"+ idper +"'",function(err, recordset1){
+          if(err){
+            return next(err);
+          }else{
+            res.json({
+              sucesso: false,
+              message:"Perfil elimnado com sucesso"
+            })
+          }
+        });
+      }
+
+
+    });
+});
+
+
+
+module.exports = router; 
+
+
 
 
