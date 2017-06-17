@@ -40,7 +40,7 @@ router.post('/autenticacao', function(req, res, next) {
   console.log("entrada:"+email, password);
 
   var request = new sql.Request(connection);
-    request.query("SELECT * FROM utilizador where email= '"+email+"' and password= '"+password+"'", function(err, user){
+    request.query("SELECT IdUtilizador, Utilizador.Email, Utilizador.Nome, Utilizador.Cliente, IdNav FROM utilizador, cliente where Utilizador.Email= '"+email+"' and Password= '"+password+"' and utilizador.Cliente = cliente.Idcliente", function(err, user){
       if(err){
         return next(err);
       }else{
@@ -58,7 +58,7 @@ router.post('/autenticacao', function(req, res, next) {
                 token : token,
                 expires: expires,
                 sucesso: true,
-                user: {Idutilizador:user[0].IdUtilizador, Email:user[0].Email, Nome:user[0].Nome, Cliente:user[0].Cliente}
+                user: {Idutilizador:user[0].IdUtilizador, Email:user[0].Email, Nome:user[0].Nome, Cliente:user[0].Cliente, IdNav:user[0].IdNav}
               });
 
               

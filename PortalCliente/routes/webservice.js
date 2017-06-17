@@ -243,6 +243,41 @@ router.post('/perfis/deletePerfis', function(req, res, next){
     });
 });
 
+/*
+  Retorna o cliente para para o formario inserir utilizador
+*/
+router.post('/cliente/outrosUtilizadores', function(req, res, next) {
+  var idUser = req.body.idUser;
+  console.log(idUser);   
+  var request = new sql.Request(connection);
+    request.query("select Cliente.Idcliente, Cliente.Nome from Cliente, Utilizador where Utilizador.IdUtilizador='"+idUser+"' and Utilizador.Cliente = Cliente.Idcliente" , function(err, recordset){
+      if(err){
+        return next(err);
+      }
+      res.send(recordset);
+    });
+
+});
+
+/*
+  Retorna perfis de um dado cliente
+*/
+router.post('/perfis/perfisCliente', function(req, res, next) {
+  var cliente = req.body.idCliente;
+  console.log(cliente);   
+  var request = new sql.Request(connection);
+    request.query("Select * from perfil where cliente='"+cliente+"'" , function(err, recordset){
+      if(err){
+        return next(err);
+      }
+      res.send(recordset);
+    });
+
+});
+
+
+
+
 
 
 module.exports = router; 
