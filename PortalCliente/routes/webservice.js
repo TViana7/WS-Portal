@@ -1,8 +1,8 @@
 var express = require('express');
 var router = express.Router();
 var sql = require('mssql');
+var CryptoJS = require("crypto-js");
 //var jwt = require('jsonwebtoken');
-
 
 var connection = new sql.Connection({
     user:'SA',
@@ -62,6 +62,39 @@ router.post('/inserirPerfil', function(req, res, next){
     });
 });
 
+/*Retorna os UrlsNovo*/
+router.get('/mapeamento/getURL', function(req, res, next){
+  var array=[];
+  var request = new sql.Request(connection);
+  request.query("select idurl, nome, url  from url", function(err, urlmaster){
+      if(err){
+        return next(err);
+      }else{
+        urlmaster.forEach(function(u, index){
+          request.query("select urlChild.IdUrlChild, urlChild.NomeUrlChild from urlChild, url where url.IdUrl = urlChild.URL and url.IdUrl='"+u.idurl+"'", function(err, urlchild){
+            var item={"IdUrl":u.idurl, "Nome":u.nome, "urlChild":urlchild};
+            array.push(item);
+            if(index==urlmaster.length-1){
+              res.send(array);
+            }
+          });
+        }, this);
+
+      }
+
+
+
+
+      
+    });
+});
+
+
+
+
+
+
+
 /*
   Retorna URL por categoria
 */
@@ -71,42 +104,44 @@ router.get('/mapeamento/getURL/teste', function(req, res, next){
   var arrayGlobal=[];
   var arrayCopy=[];
 
-  var request = new sql.Request(connection);
-  request.query("select descricao, idurl, nome from categoria, url where categoria.IdCategoria = url.categoria", function(err, recordset){
-      if(err){
-        return next(err);
-      }else{
+  //console.log(req.headers.authorization);
+  //var token = req.headers.authorization;
+        var request = new sql.Request(connection);
+        request.query("select descricao, idurl, nome from categoria, url where categoria.IdCategoria = url.categoria order by url", function(err, recordset){
+            if(err){
+              return next(err);
+            }else{
 
-        //console.log(recordset);
-        arrayCopy=recordset;
-    
-          arrayCopy.forEach(function(element,index){
-                var aux=element.descricao;
-                arrayCopy.forEach(function(element, index) {
-                  if(String(element.descricao)===String(aux)){
-                    var item = {"idurl":element.idurl,"nome":element.nome};
-                    array.push(item);                    
-                  }
-                
+              //console.log(recordset);
+              arrayCopy=recordset;
+          
+                arrayCopy.forEach(function(element,index){
+                      var aux=element.descricao;
+                      arrayCopy.forEach(function(element, index) {
+                        if(String(element.descricao)===String(aux)){
+                          var item = {"idurl":element.idurl,"nome":element.nome};
+                          array.push(item);                    
+                        }
+                      
+                      }, this);
+                      arrayCopy.forEach(function(element, index) {
+                        if(String(element.descricao)===String(aux)){
+                          arrayCopy.splice(index,1);
+                        }
+                      
+                      }, this);
+
+                      var item1 = {"Descricao":aux,"infos":array};
+                          arrayGlobal.push(item1);
+                          array=[];
+
                 }, this);
-                arrayCopy.forEach(function(element, index) {
-                  if(String(element.descricao)===String(aux)){
-                    arrayCopy.splice(index,1);
-                  }
-                
-                }, this);
+                //console.log(arrayGlobal);
+                res.send(arrayGlobal);
 
-                var item1 = {"Descricao":aux,"infos":array};
-                    arrayGlobal.push(item1);
-                    array=[];
+              } 
 
-          }, this);
-          console.log(arrayGlobal);
-          res.send(arrayGlobal);
-
-        } 
-
-    });
+          });
 });
 
 /*
@@ -163,54 +198,32 @@ Listagem de perfis
 
 router.get('/perfis/todosperfis/getperfis', function(req, res, next){
   var array=[];
-  var arrayGlobal=[];
-  var arrayCopy=[];
-
   var request = new sql.Request(connection);
-  request.query("select IdPerfil, NomePerfil, Descricao, Nome from perfil, mapa, url where perfil.IdPerfil = mapa.Perfil and mapa.Url = url.IdUrl", function(err, recordset){
+  request.query("select IdPerfil, NomePerfil, Descricao from perfil", function(err, perfis){
       if(err){
         return next(err);
       }else{
+        perfis.forEach(function(perfil, index){
+          request.query("select Nome from url, mapa where mapa.Perfil='"+perfil.IdPerfil+"' and mapa.Url = url.IdUrl", function(err, url){
+            var item={"IdPerfil":perfil.IdPerfil,"NomePerfil":perfil.NomePerfil,"Descricao":perfil.Descricao, "Url":url};
+            array.push(item);
+            if(index==perfis.length-1){
+              res.send(array);
+            }
+          });
+        });
 
-        console.log(recordset);
-        arrayCopy=recordset;
-    
-          arrayCopy.forEach(function(element,index){
-                var aux=element.Descricao;
-                var aux1=element.IdPerfil;
-                var aux2=element.NomePerfil;
-                console.log("perfil"+element.NomePerfil);
-                arrayCopy.forEach(function(element, index) {
-                  if(String(element.IdPerfil)===String(aux1)){
-                    var item = {"Nome":element.Nome};
-                    array.push(item);
-                    //console.log(array);                   
-                  }
-                
-                }, this);
-                //console.log(array);
-                arrayCopy.forEach(function(element, index1) {
-                  console.log(arrayCopy);
-                  if(String(element.IdPerfil)===String(aux1)){
-                      arrayCopy.splice(index1,1);
-                      console.log(arrayCopy);
-                  }
-                
-                }, this);
+      }
 
-                var item1 = {"IdPerfil":aux1,"NomePerfil":aux2,"Descricao":aux,"MapaUrl":array};
-                    arrayGlobal.push(item1);
-                    array=[];
 
-          }, this);
 
-          //console.log(arrayGlobal);
 
-          res.send(arrayGlobal);
-
-        } 
-
+      
     });
+
+    
+
+
 });
 
 
@@ -223,24 +236,36 @@ router.post('/perfis/deletePerfis', function(req, res, next){
   var idper = req.body.idperfil;   
   console.log("entrada:"+idper);
   var request = new sql.Request(connection);
-  request.query("delete from mapa where perfil='"+ idper +"'", function(err, recordset){
-      if(err){
-        return next(err);
+  request.query("SELECT perfil from PerfilUtilizador where perfilUtilizador.perfil='"+idper+"'", function(err, perfiluser){
+    if(err){
+      return next(err);
+    }
+    if(perfiluser.length==0){
+            console.log(perfiluser.length);
+            request.query("delete from mapa where perfil='"+ idper +"'", function(err, recordset){
+            if(err){
+              return next(err);
+            }else{
+              request.query("delete from perfil where IdPerfil='"+ idper +"'",function(err, recordset1){
+                if(err){
+                  return next(err);
+                }else{
+                  res.json({
+                    sucesso: true,
+                    message:"Perfil elimnado com sucesso"
+                  })
+                }
+              });
+            }
+          });
       }else{
-        request.query("delete from perfil where IdPerfil='"+ idper +"'",function(err, recordset1){
-          if(err){
-            return next(err);
-          }else{
-            res.json({
-              sucesso: false,
-              message:"Perfil elimnado com sucesso"
-            })
-          }
-        });
+        res.json({
+            sucesso: false,
+            message:"Utiliador associado a este perfil!"
+        })
       }
-
-
-    });
+  } );
+  
 });
 
 /*
@@ -250,7 +275,7 @@ router.post('/cliente/outrosUtilizadores', function(req, res, next) {
   var idUser = req.body.idUser;
   console.log(idUser);   
   var request = new sql.Request(connection);
-    request.query("select Cliente.Idcliente, Cliente.Nome from Cliente, Utilizador where Utilizador.IdUtilizador='"+idUser+"' and Utilizador.Cliente = Cliente.Idcliente" , function(err, recordset){
+    request.query("select Cliente.Idcliente, Cliente.ClienteNome from Cliente, Utilizador where Utilizador.IdUtilizador='"+idUser+"' and Utilizador.Cliente = Cliente.Idcliente" , function(err, recordset){
       if(err){
         return next(err);
       }
@@ -272,6 +297,90 @@ router.post('/perfis/perfisCliente', function(req, res, next) {
       }
       res.send(recordset);
     });
+
+});
+
+/*
+
+Inserir Utilizadores
+
+*/
+
+router.post('/utilizador/inserirUtilizador/novoUtilizador', function(req, res, next){
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  var request = new sql.Request(connection);
+  request.query("select Email from utilizador where Email='"+req.body.Email+"'", function(err, resposta){
+    if(err){
+        return next(err);
+    }
+    if(Object.keys(resposta).length==0){
+        var password = Math.random().toString(36).slice(-8);
+        console.log(password);
+        var passwordEncript="123456789";//CryptoJS.SHA256(password);
+        request.query("insert into Utilizador (Email, Password, Nome, Cliente) values ('"+req.body.Email+"', '"+passwordEncript+"','"+req.body.Nome+"','"+req.body.Cliente+"')", function(err){
+          if(err){
+            return next(err);
+          }
+          else{  
+              request.query("SELECT IdUtilizador FROM utilizador where Email='"+req.body.Email+"'", function(err, idUtilizador){
+                if(err){
+                  return next(err);
+                }else{
+                  var idusr=idUtilizador[0].IdUtilizador;
+                  console.log(idusr)
+                  for (var index = 0; index < req.body.url.length; index++) {
+                    request.query("insert into perfilUtilizador (Perfil, Utilizador) values ('"+req.body.url[index]+"','"+idusr+"')");  
+                  }
+                  return res.json({
+                      sucesso: true,
+                      message:"Utilizador adicionado com sucesso!"
+                  })
+                } 
+              });
+          }
+        });
+    }else{
+      return res.json({
+                sucesso: false,
+                message:"Este Utilizador já existe!"
+      })
+    }
+    
+  });
+
+});
+
+
+//retorna todos os utlizadores
+router.get('/utilizadores/todosutilizadores/getutilizadores', function(req, res, next){
+  var array=[];
+  var request = new sql.Request(connection);
+  request.query("select utilizador.IdUtilizador, utilizador.Nome, utilizador.email, cliente.ClienteNome from utilizador, cliente where utilizador.cliente = cliente.Idcliente", function(err, utilizadores){
+      if(err){
+        return next(err);
+      }else{
+        utilizadores.forEach(function(utilizador, index){
+          request.query("select perfil.NomePerfil from perfil, perfilUtilizador, utilizador where utilizador.idUtilizador='"+utilizador.IdUtilizador+"' and utilizador.idUtilizador = perfilUtilizador.Utilizador and perfilUtilizador.Perfil = perfil.IdPerfil", function(err, perfis){
+            var item={"IdUtilizador":utilizador.IdUtilizador,"NomeUtilizador":utilizador.Nome,"Email":utilizador.email,"Cliente":utilizador.ClienteNome, "perfis":perfis};
+            array.push(item);
+            console.dir(array);
+            if(index==utilizadores.length-1){
+              res.send(array);
+              
+            }
+          });
+        });
+
+      }
+
+
+
+
+      
+    });
+
+    
+
 
 });
 

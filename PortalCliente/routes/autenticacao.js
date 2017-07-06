@@ -45,7 +45,6 @@ router.post('/autenticacao', function(req, res, next) {
         return next(err);
       }else{
             console.log(Object.keys(user).length);
-            //verificar se o objeto é vazio
             if(!Object.keys(user).length==0){
               //gera um token 
                 var expires = moment().add('days', 1).valueOf();
