@@ -33,6 +33,7 @@ router.get('/', function(req, res, next) {
 
 
 router.post('/autenticacao', function(req, res, next) {
+  
   res.setHeader('Access-Control-Allow-Origin', '*');
   console.log(req.body);
   var email = req.body.email;  
@@ -46,21 +47,42 @@ router.post('/autenticacao', function(req, res, next) {
       }else{
             console.log(Object.keys(user).length);
             if(!Object.keys(user).length==0){
-              //gera um token 
-                var expires = moment().add('days', 1).valueOf();
-                var token = jwt.encode({
-                    iss: user.IdUtilizador,
-                    exp: expires
-              }, app.get('jwtTokenSecret'));
+              request.query("select distinct categoria.IdCategoria, categoria.descricao from categoria, url, mapa, perfil, perfilUtilizador where perfilUtilizador.Utilizador='"+user[0].IdUtilizador+"' and perfilutilizador.Perfil = perfil.IdPerfil and perfil.IdPerfil = mapa.Perfil and mapa.Url = url.IdUrl and url.Categoria= categoria.IdCategoria", function(err, cat){
+                if(err){
+                  return next(err);
+                }else{
+                  var arrayLinks=[];
+                  cat.forEach(function(c, index) {
+                    request.query("select distinct url.url from url, categoria, mapa, perfil, perfilUtilizador where perfilUtilizador.Utilizador='"+user[0].IdUtilizador+"' and perfilutilizador.Perfil = perfil.IdPerfil and perfil.IdPerfil = mapa.Perfil and mapa.Url = url.IdUrl and url.Categoria='"+c.IdCategoria+"'", function(err, url){
+                      if(err){
+                        return next(err);
+                      }else{
+                        let item={"categoria":c.descricao, "url":url};
+                        arrayLinks.push(item);
+                        if (index == cat.length - 1) {
+                                var expires = moment().add('days', 1).valueOf();
+                                var token = jwt.encode({
+                                  iss: user.IdUtilizador,
+                                  exp: expires
+                                }, app.get('jwtTokenSecret'));
 
-              res.json({
-                token : token,
-                expires: expires,
-                sucesso: true,
-                user: {Idutilizador:user[0].IdUtilizador, Email:user[0].Email, Nome:user[0].Nome, Cliente:user[0].Cliente, IdNav:user[0].IdNav}
-              });
+                                res.json({
+                                    token : token,
+                                    expires: expires,
+                                    sucesso: true,
+                                    user: {Idutilizador:user[0].IdUtilizador, Email:user[0].Email, Nome:user[0].Nome, Cliente:user[0].Cliente, IdNav:user[0].IdNav},
+                                    url: arrayLinks
+                                });
 
-              
+                        }
+                        
+                      }
+                    });
+                    
+                  }, this);
+                  
+                }
+              }); 
             }else{
               return res.json({
                 sucesso: false,
