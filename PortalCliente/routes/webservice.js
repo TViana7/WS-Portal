@@ -8,7 +8,7 @@ var nodemailer = require('nodemailer');
 
 var connection = new sql.Connection({
   user: 'SA',
-  password: 'tia#7via',
+  password: '***',
   database: 'CustomerPortal',
   server: 'localhost'
 });
@@ -29,7 +29,7 @@ function enviaEmail(nomeutilizador, idutilizador, email) {
     service: 'Gmail',
     auth: {
       user: 'tiago.viana7@gmail.com', // Your email id
-      pass: 'Tiago#7viana' // Your password
+      pass: '***' // Your password
     }
   });
 
@@ -43,11 +43,9 @@ function enviaEmail(nomeutilizador, idutilizador, email) {
   };
   transporter.sendMail(mailOptions, function (error, info) {
     if (error) {
-      console.log("erro");
-      res.json({ yo: 'error' });
+
     } else {
-      console.log('Message sent: ' + info.response);
-      res.json({ yo: info.response });
+
     };
   });
 
@@ -370,10 +368,11 @@ Listagem de perfis
 
 */
 
-router.get('/perfis/todosperfis/getperfis', function (req, res, next) {
+router.post('/perfis/todosperfis/getperfis', function (req, res, next) {
   var array = [];
   var request = new sql.Request(connection);
-  request.query("select IdPerfil, NomePerfil, Descricao from perfil order by NomePerfil", function (err, perfis) {
+  console.log("teste");
+  request.query("select IdPerfil, NomePerfil, Descricao from perfil where perfil.cliente='" + req.body.cliente + "' order by NomePerfil", function (err, perfis) {
     if (err) {
       return next(err);
     } else {
@@ -480,7 +479,7 @@ router.post('/cliente/outrosUtilizadores', function (req, res, next) {
   Retorna perfis de um dado cliente
 */
 router.post('/perfis/perfisCliente', function (req, res, next) {
-  var cliente = req.body.idCliente;
+  var cliente = req.body.cliente;
   console.log(cliente);
   var request = new sql.Request(connection);
   request.query("Select * from perfil where cliente='" + cliente + "'", function (err, recordset) {
@@ -495,6 +494,38 @@ router.post('/perfis/perfisCliente', function (req, res, next) {
 
 /*
 
+Apagar Utilizadores
+
+*/
+
+router.post('/utilizador/apagaruser', function (req, res, next) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  var request = new sql.Request(connection);
+  request.query("delete from perfilUtilizador where utilizador='" + req.body.utilizador + "'", function (err) {
+    if (err) {
+      return next(err);
+    } else {
+      request.query("delete from utilizador where IdUtilizador='" + req.body.utilizador + "'", function (err) {
+        if (err) {
+
+        } else {
+          return res.json({
+            sucesso: true,
+            message: "Utilizador eliminado com sucesso!"
+          })
+        }
+      });
+    }
+  });
+});
+
+
+
+
+
+
+/*
+
 Inserir Utilizadores
 
 */
@@ -502,15 +533,16 @@ Inserir Utilizadores
 router.post('/utilizador/inserirUtilizador/novoUtilizador', function (req, res, next) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   var request = new sql.Request(connection);
+  console.log(req.body);
   request.query("select Email from utilizador where Email='" + req.body.Email + "'", function (err, resposta) {
     if (err) {
       return next(err);
     }
     if (Object.keys(resposta).length == 0) {
       var password = Math.random().toString(36).slice(-8);
-      console.log(password);
-      var passwordEncript = "123456789";//CryptoJS.SHA256(password);
-      request.query("insert into Utilizador (Email, Password, Nome, Cliente) values ('" + req.body.Email + "', '" + passwordEncript + "','" + req.body.Nome + "','" + req.body.Cliente + "')", function (err) {
+      //console.log(password);
+      //var passwordEncript = "123456789";//CryptoJS.SHA256(password);
+      request.query("insert into Utilizador (Email, Password, Nome, Cliente, ClienteCriou ) values ('" + req.body.Email + "', '" + password + "','" + req.body.Nome + "','" + req.body.Cliente + "','" + req.body.CliCriou + "')", function (err) {
         if (err) {
           return next(err);
         }
@@ -525,7 +557,6 @@ router.post('/utilizador/inserirUtilizador/novoUtilizador', function (req, res, 
                 request.query("insert into perfilUtilizador (Perfil, Utilizador) values ('" + req.body.url[index] + "','" + idusr + "')");
               }
               enviaEmail(req.body.Nome, idusr, req.body.Email);
-
               return res.json({
                 sucesso: true,
                 message: "Utilizador adicionado com sucesso!"
@@ -558,18 +589,18 @@ router.post('/utilizador/updateUtilizadores', function (req, res, next) {
 
   request.query("select Email from utilizador where Email='" + req.body.Email + "'", function (err, resposta) {
     if (err) {
-      return next(err);
+      console.log(next(err));
     }
     if (Object.keys(resposta).length == 0) {
       request.query("update utilizador set nome ='" + req.body.Nome + "', email ='" + req.body.Email + "', cliente ='" + req.body.Cliente + "' where IdUtilizador='" + req.body.id + "'", function (err) {
         if (err) {
-          return next(err);
+          console.log(next(err));
         }
         else {
           console.log("passa aqui0");
           request.query("delete from perfilUtilizador where utilizador ='" + req.body.id + "'", function (err) {
             if (err) {
-              return next(err);
+              console.log(next(err));
             }
             else {
               console.log("passa aqui123");
@@ -587,58 +618,66 @@ router.post('/utilizador/updateUtilizadores', function (req, res, next) {
     }
     request.query("select nome from utilizador where nome='" + req.body.Nome + "'", function (err, resposta) {
       if (err) {
-        return next(err);
+        console.log(next(err));
       }
       if (Object.keys(resposta).length == 0) {
         request.query("update utilizador set nome ='" + req.body.Nome + "', email ='" + req.body.Email + "', cliente ='" + req.body.Cliente + "' where IdUtilizador='" + req.body.id + "'", function (err) {
           if (err) {
-            return next(err);
+            console.log(next(err));
           }
           else {
             console.log("passa aqui0");
             request.query("delete from perfilUtilizador where utilizador ='" + req.body.id + "'", function (err) {
               if (err) {
-                return next(err);
+                console.log(next(err));
               }
               else {
                 console.log("passa aqui123");
                 for (var index = 0; index < req.body.perfis.length; index++) {
-                  request.query("insert into perfilUtilizador (Perfil, Utilizador) values ('" + req.body.perfis[index] + "','" + req.body.id + "')");
+                  request.query("insert into perfilUtilizador (Perfil, Utilizador) values ('" + req.body.perfis[index] + "','" + req.body.id + "')", function (err) {
+                    if (err) {
+
+                    } else {
+
+                      return res.json({
+                        sucesso: true,
+                        message: "Utilizador Editado com sucesso!"
+                      });
+
+                    }
+                  });
                 }
               }
-              return res.json({
-                sucesso: true,
-                message: "Utilizador Editado com sucesso!"
-              });
+
             });
           }
         });
       }
       request.query("select cliente from utilizador where nome='" + req.body.Cliente + "'", function (err, resposta) {
         if (err) {
-          return next(err);
+          console.log(next(err));
         }
         if (Object.keys(resposta).length == 0) {
           request.query("update utilizador set nome ='" + req.body.Nome + "', email ='" + req.body.Email + "', cliente ='" + req.body.Cliente + "' where IdUtilizador='" + req.body.id + "'", function (err) {
             if (err) {
-              return next(err);
+              console.log(next(err));
             }
             else {
               console.log("passa aqui0");
               request.query("delete from perfilUtilizador where utilizador ='" + req.body.id + "'", function (err) {
                 if (err) {
-                  return next(err);
+                  console.log(next(err));
                 }
                 else {
                   console.log("passa aqui123");
                   for (var index = 0; index < req.body.perfis.length; index++) {
                     request.query("insert into perfilUtilizador (Perfil, Utilizador) values ('" + req.body.perfis[index] + "','" + req.body.id + "')");
                   }
+                  return res.json({
+                    sucesso: true,
+                    message: "Utilizador Editado com sucesso!"
+                  });
                 }
-                return res.json({
-                  sucesso: true,
-                  message: "Utilizador Editado com sucesso!"
-                });
               });
             }
           });
@@ -646,13 +685,24 @@ router.post('/utilizador/updateUtilizadores', function (req, res, next) {
         else {
           request.query("delete from perfilUtilizador where utilizador ='" + req.body.id + "'", function (err) {
             if (err) {
-              return next(err);
+              console.log(next(err));
             }
             else {
               console.log("passa aqui123");
-              for (var index = 0; index < req.body.perfis.length; index++) {
-                request.query("insert into perfilUtilizador (Perfil, Utilizador) values ('" + req.body.perfis[index] + "','" + req.body.id + "')");
-              }
+              req.body.perfis.forEach(function (perfil, index) {
+                request.query("insert into perfilUtilizador (Perfil, Utilizador) values ('" + req.body.perfis[perfil] + "','" + req.body.id + "')", function (err) {
+                  if (err) {
+
+                  } else {
+
+                    return res.json({
+                      sucesso: true,
+                      message: "Utilizador editado com sucesso!"
+                    });
+
+                  }
+                });
+              });
             }
             return res.json({
               sucesso: true,
@@ -688,12 +738,15 @@ router.post('/utilizador/updateuser', function (req, res, next) {
     if (Object.keys(resposta).length == 0) {
       request.query("update utilizador set nome ='" + req.body.nome + "', email ='" + req.body.Email + "' where IdUtilizador='" + req.body.idperfil + "'", function (err) {
         if (err) {
-          return next(err);
+          return res.json({
+            sucesso: false,
+            message: "Utilizador Editado com sucesso!"
+          });
         }
         else {
           return res.json({
             sucesso: true,
-            message: "Utilizador Editado com sucesso!"
+            message: "Perfil de utilizador editado com sucesso!"
           });
         }
       });
@@ -701,12 +754,15 @@ router.post('/utilizador/updateuser', function (req, res, next) {
       console.log("entra");
       request.query("update utilizador set nome ='" + req.body.nome + "'where IdUtilizador='" + req.body.idperfil + "'", function (err) {
         if (err) {
-          return next(err);
+          return res.json({
+            sucesso: false,
+            message: "Erro ao editar perfil de utilizador!"
+          });
         }
         else {
           return res.json({
             sucesso: true,
-            message: "Utilizador Editado com sucesso!"
+            message: "Perfil de utilizador editado com sucesso!"
           });
         }
       });
@@ -725,28 +781,34 @@ update password User
 router.post('/utilizador/updatepassword', function (req, res, next) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   var request = new sql.Request(connection);
-  console.log(req.body);
+  //console.log(req.body);
   request.query("select password from utilizador where password='" + req.body.PasswordAntiga + "' and IdUtilizador='" + req.body.IdUser + "'", function (err, resposta) {
     if (err) {
-      return next(err);
+      return res.json({
+        sucesso: false,
+        message: "Não foi possível editar a password!"
+      });
     } else {
       console.log("entrou");
       if (Object.keys(resposta).length != 0) {
         console.log("entrou");
         request.query("update utilizador set password ='" + req.body.PasswordNova + "'where IdUtilizador='" + req.body.IdUser + "'", function (err) {
           if (err) {
-            return next(err);
+            return res.json({
+              sucesso: false,
+              message: "Não foi possível editar a password!"
+            });
           }
           else {
             return res.json({
               sucesso: true,
-              message: "Password Editada!"
+              message: "Password editada com sucesso!"
             });
           }
         });
       } else {
         return res.json({
-          sucesso: true,
+          sucesso: false,
           message: "Password Antiga incorreta!"
         });
 
@@ -767,14 +829,20 @@ router.post('/utilizador/recoverpassword', function (req, res, next) {
   console.log(req.body);
   request.query("select * from utilizador where IdUtilizador='" + req.body.iduser + "'", function (err, resposta) {
     if (err) {
-      return next(err);
+      return res.json({
+        sucesso: false,
+        message: "Não foi possível alterar a password!"
+      });
     } else {
       console.log("entrou");
       if (Object.keys(resposta).length != 0) {
         console.log("entrou");
         request.query("update utilizador set password ='" + req.body.password + "'where IdUtilizador='" + req.body.iduser + "'", function (err) {
           if (err) {
-            return next(err);
+            return res.json({
+              sucesso: false,
+              message: "Não foi possível alterar a password!"
+            });
           }
           else {
             return res.json({
@@ -785,7 +853,7 @@ router.post('/utilizador/recoverpassword', function (req, res, next) {
         });
       } else {
         return res.json({
-          sucesso: true,
+          sucesso: false,
           message: "utilizador inexistente!"
         });
 
@@ -801,24 +869,22 @@ router.post('/utilizador/recoverpassword', function (req, res, next) {
 retorna todos os utlizadores
 */
 
-function teste(callback) {
-  var request = new sql.Request(connection);
-  request.query("select utilizador.IdUtilizador, utilizador.Nome, utilizador.email, cliente.ClienteNome from utilizador, cliente where utilizador.cliente = cliente.Idcliente order by utilizador.Nome ", function (err, utilizadores, next) {
-    if (err) {
-      return next(err);
-    }
-    return callback(utilizadores);
-  });
-}
 
 
-router.get('/utilizadores/todosutilizadores/getutilizadores', function (req, res, next) {
+
+router.post('/utilizadores/todosutilizadores/getutilizadores', function (req, res, next) {
   var array = [];
   var ut = [];
   var request = new sql.Request(connection);
+  var cliente = req.body.cliente;
+  console.log(cliente)
 
-  teste(function (utilizadores) {
 
+  request.query("select utilizador.IdUtilizador, utilizador.Nome, utilizador.email, cliente.ClienteNome from utilizador, cliente where utilizador.cliente = cliente.Idcliente and  utilizador.ClienteCriou='" + cliente + "' order by cliente.ClienteNome ", function (err, utilizadores, next) {
+    if (err) {
+      return next(err);
+    }
+    console.log(utilizadores);
     utilizadores.forEach(function (utilizador, index) {
       //console.log("*****" + utilizador);
       request.query("select perfil.NomePerfil from perfil, perfilUtilizador, utilizador where utilizador.idUtilizador='" +
@@ -841,7 +907,6 @@ router.get('/utilizadores/todosutilizadores/getutilizadores', function (req, res
     });
 
   });
-
 
 });
 
