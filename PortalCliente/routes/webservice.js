@@ -8,7 +8,7 @@ var nodemailer = require('nodemailer');
 
 var connection = new sql.Connection({
   user: 'SA',
-  password: '***',
+  password: 'tia#7via',
   database: 'CustomerPortal',
   server: 'localhost'
 });
@@ -29,7 +29,7 @@ function enviaEmail(nomeutilizador, idutilizador, email) {
     service: 'Gmail',
     auth: {
       user: 'tiago.viana7@gmail.com', // Your email id
-      pass: '***' // Your password
+      pass: 'Tiago#7viana' // Your password
     }
   });
 
@@ -291,7 +291,7 @@ router.post('/perfis/inserirPerfil/update', function (req, res, next) {
                   }
                   return res.json({
                     sucesso: true,
-                    message: "Perfil adicionado com sucesso!"
+                    message: "Perfil editado com sucesso!"
                   })
                 }
               });
@@ -299,7 +299,7 @@ router.post('/perfis/inserirPerfil/update', function (req, res, next) {
           });
         }
       });
-    }
+    }else{
     request.query("select descricao from perfil where descricao='" + req.body.descricao + "'", function (err, resposta) {
       if (err) {
         return next(err);
@@ -325,7 +325,7 @@ router.post('/perfis/inserirPerfil/update', function (req, res, next) {
                     }
                     return res.json({
                       sucesso: true,
-                      message: "Perfil adicionado com sucesso!"
+                      message: "Perfil editado com sucesso!"
                     })
                   }
                 });
@@ -357,6 +357,7 @@ router.post('/perfis/inserirPerfil/update', function (req, res, next) {
         });
       }
     });
+    }
   });
 });
 
@@ -422,7 +423,7 @@ router.post('/perfis/deletePerfis', function (req, res, next) {
             } else {
               res.json({
                 sucesso: true,
-                message: "Perfil elimnado com sucesso"
+                message: "Perfil elimnado com sucesso!"
               })
             }
           });
@@ -431,7 +432,7 @@ router.post('/perfis/deletePerfis', function (req, res, next) {
     } else {
       res.json({
         sucesso: false,
-        message: "Utiliador associado a este perfil!"
+        message: "Este perfil está associdado a utilizadores!"
       })
     }
   });
@@ -847,14 +848,14 @@ router.post('/utilizador/recoverpassword', function (req, res, next) {
           else {
             return res.json({
               sucesso: true,
-              message: "Password alterada!"
+              message: "Password alterada com sucesso!"
             });
           }
         });
       } else {
         return res.json({
           sucesso: false,
-          message: "utilizador inexistente!"
+          message: "Utilizador inválido!"
         });
 
       }
@@ -888,7 +889,7 @@ router.post('/utilizadores/todosutilizadores/getutilizadores', function (req, re
     utilizadores.forEach(function (utilizador, index) {
       //console.log("*****" + utilizador);
       request.query("select perfil.NomePerfil from perfil, perfilUtilizador, utilizador where utilizador.idUtilizador='" +
-        utilizador.IdUtilizador + "' and utilizador.idUtilizador = perfilUtilizador.Utilizador and perfilUtilizador.Perfil = perfil.IdPerfil order by perfil.NomePerfil", function (err, perfis, next) {
+        utilizador.IdUtilizador + "' and utilizador.idUtilizador = perfilUtilizador.Utilizador and perfilUtilizador.Perfil = perfil.IdPerfil", function (err, perfis, next) {
           if (err) {
             next(err);
           } else {
